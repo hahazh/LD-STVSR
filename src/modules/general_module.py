@@ -643,6 +643,14 @@ class block(nn.Module):
         feat_out = torch.cat([feat_ks2[:,:,0:1,:,:],feat_ks3,feat_ks2[:,:,1:2,:,:]],dim=2)
         return feat_out+identity
 
+
+# temporal fuse atten
+
+    
+
+
+
+
 class ref_attention(nn.Module):
     def __init__(self,nf = 64):
         super(ref_attention, self).__init__()
@@ -663,7 +671,6 @@ class ref_attention(nn.Module):
         self.upsample = nn.Upsample(
             scale_factor=2, mode='bilinear', align_corners=False)
         self.spatial_attn_add2 = nn.Conv2d(nf, nf, 1)
-        # self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
         
     def forward(self, x):
         # bcthw -> btchw
@@ -695,79 +702,6 @@ class ref_attention(nn.Module):
         
         feat_space  =feat_time * attn_space
         return (feat_time+feat_space)/2.0
-# temporal fuse atten
-class TFA(nn.Module):
-    
-    def __init__(self,nf = 64):
-        super(TFA, self).__init__()
-        # ks = 1 跟 ks = 3 混着来？？？
-        self.conv3d_1 = nn.Conv3d(nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
-        self.conv3d_2 = nn.Conv3d(nf, nf, (1,3,3), stride=(1,1,1), padding=(0,1,1))
-        self.conv3d_3 = nn.Conv3d(2*nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
-        self.conv3d_4 = nn.Conv3d(nf, nf, (1,3,3), stride=(1,1,1), padding=(0,1,1))
-        self.conv3d_fuse1 = nn.Conv3d(2*nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
-        
-        self.repeat_hybrid = self.make_layer_for_2x3(block,3)
-        self.short_cut_out =  nn.Conv2d(3*nf, nf, 3, padding=1)
-        self.att =  ref_attention()
-        self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
-    def make_layer_for_2x3(self,block, num_blocks):
-        layers = []
-        for _ in range(num_blocks):
-            layers.append(block())
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        #x b,c,t,h,w
-        b,c,t,h,w = x.size()
-        x1 = self.conv3d_1(self.lrelu(x))
-        x1 = self.conv3d_2(self.lrelu(x1))
-        x1 = torch.cat((x,x1), 1)
-        x1 = self.conv3d_3(self.lrelu(x1))
-        x2 = self.conv3d_4(self.lrelu((x1)))
-        x2 = torch.cat((x1,x2),1)
-        x3 = self.conv3d_fuse1(self.lrelu(x2))
-        x4 = self.repeat_hybrid(x3)
-        out = self.lrelu(self.short_cut_out(x.contiguous().view(b,c*t,h,w))) + self.att(x4)
-        return out
-    
-
-
-
-class TFA_with_only3d(nn.Module):
-    
-    def __init__(self,nf = 64):
-        super(TFA_with_only3d, self).__init__()
-        # ks = 1 跟 ks = 3 混着来？？？
-        self.conv3d_1 = nn.Conv3d(nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
-        self.conv3d_2 = nn.Conv3d(nf, nf, (1,3,3), stride=(1,1,1), padding=(0,1,1))
-        self.conv3d_3 = nn.Conv3d(2*nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
-        self.conv3d_4 = nn.Conv3d(nf, nf, (1,3,3), stride=(1,1,1), padding=(0,1,1))
-        self.conv3d_fuse1 = nn.Conv3d(2*nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
-        
-        self.repeat_hybrid = self.make_layer_for_2x3(block,3)
-        self.short_cut_out =  nn.Conv2d(3*nf, nf, 3, padding=1)
-        self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
-    def make_layer_for_2x3(self,block, num_blocks):
-        layers = []
-        for _ in range(num_blocks):
-            layers.append(block())
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        #x b,c,t,h,w
-        b,c,t,h,w = x.size()
-        x1 = self.conv3d_1(self.lrelu(x))
-        x1 = self.conv3d_2(self.lrelu(x1))
-        x1 = torch.cat((x,x1), 1)
-        x1 = self.conv3d_3(self.lrelu(x1))
-        x2 = self.conv3d_4(self.lrelu((x1)))
-        x2 = torch.cat((x1,x2),1)
-        x3 = self.conv3d_fuse1(self.lrelu(x2))
-        x4 = self.repeat_hybrid(x3)
-        out = self.lrelu(self.short_cut_out(x.contiguous().view(b,c*t,h,w)))
-        return out
-
 
 class TFA_with_onlyTSA(nn.Module):
     

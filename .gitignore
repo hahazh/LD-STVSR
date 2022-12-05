@@ -1,2 +1,4 @@
 out/
 weight/
+src/__pycache__
+src/modules/__pycache__

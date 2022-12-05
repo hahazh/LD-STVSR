@@ -17,7 +17,6 @@ from modules.softsplatting.run import backwarp
 import torch
 from modules.other_modules import context_extractor_layer , Matric_UNet,light_context_extractor_layer
 from modules.gridnet.net_module import GridNet,Light_GridNet
-from modules.pwc.utils.flow_utils import show_compare
 import cv2
 from torch.nn.modules.utils import _pair
 from mmcv.ops import ModulatedDeformConv2d, modulated_deform_conv2d

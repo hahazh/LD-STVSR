@@ -5,22 +5,16 @@ import torch
 
 import torch.nn as nn
 import torch.nn.functional as F
-from modules.general_module import ResidualBlocksWithInputConv, PixelShufflePack
+from modules.general_module import ResidualBlocksWithInputConv, block
 # from modules.flow_module import IFNet
-from modules.EDVR_module import EDVRFeatureExtractor
-from modules.general_module import flow_warp
-from modules.softalign import Insert_net_2
-from modules.general_module import TFA
-from modules.pwc.pwc_network import Network as pwcnet
-
-import modules.softsplatting.softsplat as softsplat
+from modules.general_module import flow_warp,ref_attention
 import os
 from modules.edvr_net_new import Forward_warp_guided_pcd
 from modules.flow_module import SPyNet
-from modules.edvr_net_new import SecondOrderDeformableAlignment,FirstOrderDeformableAlignment
+from modules.edvr_net_new import FirstOrderDeformableAlignment
 
-#这是对应 /ssd/zyt/code/STSR/unstrained_STSR/save/pre_unstrained/75_unstrained.pth 的文件
-#### !!!! forward_flow 意思是光流的向前 即 1->3 3->5
+
+
 class Unstrained_ST(nn.Module):
    
 
@@ -31,9 +25,6 @@ class Unstrained_ST(nn.Module):
                  num_blocks=30,
                  keyframe_stride=1,
                  padding=2,
-                 load_pretrained_pwc=True,
-                 edvr_pretrained = True,
-                 is_train = True,
                  time_step = [0.2,0.4,0.6,0.8]):
 
         super().__init__()
@@ -42,13 +33,8 @@ class Unstrained_ST(nn.Module):
         self.mid_channels = mid_channels
         self.padding = padding
         self.keyframe_stride = keyframe_stride
-        self.is_train = is_train
         self.time_step = time_step
-        # self.spy = pwcnet()
-        # load_path = '/home/zhangyuantong/code/ST-SR/icon_STSR/pretrained_weight/spynet.pth'
         self.spy = SPyNet(pretrained=None) 
-       
-      
         self.insert = Forward_warp_guided_pcd()
        
 
@@ -61,8 +47,6 @@ class Unstrained_ST(nn.Module):
         self.forward_resblocks_insert = ResidualBlocksWithInputConv(
              mid_channels, mid_channels, num_blocks)
         self.arb_upample = Arb_upsample_cas(scale,scale2)
-        # self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
-        # self.conv_last = nn.Conv2d(64, 3, 3, 1, 1)
         self.lr_feat_extract = ResidualBlocksWithInputConv(3, mid_channels, 5)
         self.deform_align = FirstOrderDeformableAlignment(
                     2 * mid_channels,
@@ -71,13 +55,8 @@ class Unstrained_ST(nn.Module):
                     padding=1,
                     deform_groups=16,
                     max_residue_magnitude=10)
-       
-        # activation function
-        # self.atten_fuse = TFA_with_only3d()
-
         self.atten_fuse = TFA()
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
-        # self.conv_6_to_3 = nn.Conv2d(6, 3, 3, 1, 1)
     def spatial_padding(self, lrs):
       
         n, t, c, h, w = lrs.size()
@@ -117,7 +96,7 @@ class Unstrained_ST(nn.Module):
         flows_backward_pri = [flows_backward_large,flows_backward_mid,flows_backward_small]
 
         if self.is_mirror_extended:
-            print('!!!!mirror!!!!')  # flows_forward = flows_backward.flip(1)
+          
             flows_forward = None
             flows_forward_large = None
         else:
@@ -136,28 +115,15 @@ class Unstrained_ST(nn.Module):
 
 
     def forward(self, lrs,scale1,scale2):
-        """Forward function for IconVSR.
-        Args:
-            lrs (Tensor): Input LR tensor with shape (n, t, c, h, w).
-        Returns:
-            Tensor: Output HR tensor with shape (n, t, c, 4h, 4w).
-        """
-        # ----------get inserted feature-----------
-        # final_out = []
-        # inserted_lrs,inserted_img = self.Insert_module(lrs)
         
         n, t, c, h_input, w_input = lrs.size()
-        assert h_input >= 64 and w_input >= 64, (
-            'The height and width of inputs should be at least 64, '
-            f'but got {h_input} and {w_input}.')
 
-        # check whether the input is an extended sequence
         self.check_if_mirror_extended(lrs)
 
-        lrs = self.spatial_padding(lrs)
+     
         h, w = lrs.size(3), lrs.size(4)
 
-        # get the keyframe indices for information-refill
+        
         keyframe_idx = list(range(0, t, self.keyframe_stride))
         if keyframe_idx[-1] != t - 1:
             keyframe_idx.append(t - 1)  # the last frame must be a keyframe
@@ -187,7 +153,7 @@ class Unstrained_ST(nn.Module):
               
                 feat_prop = self.deform_align(feat_prop, cond, flow_n1)
                     
-            #我认为
+
             feat_prop += feat_current
             feat_prop = self.backward_resblocks(feat_prop)
 
@@ -217,10 +183,8 @@ class Unstrained_ST(nn.Module):
                 cond = torch.cat([cond, feat_current], dim=1)
                 feat_prop = torch.cat([feat_prop, feat_current_ls[i-1]], dim=1)
                 feat_prop = self.deform_align(feat_prop, cond, flow_n1)
-            #这里能不能稍微 做个attention
-            #fusionnet
+        
             stacked_feat =torch.stack([ outputs[2 * i], feat_current,feat_prop]).permute(1,2,0,3,4)
-            # feat_prop = torch.cat([ outputs[2 * i], feat_prop], dim=1)
             feat_prop = self.atten_fuse(stacked_feat)
             feat_prop = self.forward_resblocks(feat_prop)
 
@@ -240,34 +204,20 @@ class Unstrained_ST(nn.Module):
                 for j in range(3):
                     flow_1to2_pyri[j] = flows_forward_pri[j][:,i-1,:,:,:]
                     flow_2to1_pyri[j] = flows_backward_pri[j][:,i-1,:,:,:]
-              
-                if self.is_train:
-                    
-                    insert_feat_prop = self.insert(img0,img1,c0,c1,flow_1to2_pyri,flow_2to1_pyri,0.5)
-                    # insert_feat_prop = torch.cat([warped_lr_img, insert_feat_prop], dim=1)
+                intermidate_ls = []
+                for each in  self.time_step:
+
+                    intermidate_ls.append(self.insert(img0,img1,c0,c1,flow_1to2_pyri,flow_2to1_pyri,each))
+                for ix,sub in enumerate(intermidate_ls):
+                    insert_feat_prop = sub
                     insert_feat_prop = self.forward_resblocks_insert(insert_feat_prop)
                     if  scale1 is not None:
                         out_insert = self.arb_upample(insert_feat_prop,scale1,scale2)
                     else:
                         out_insert = self.arb_upample(insert_feat_prop,self.scale,self.scale2)
-                   
-                    outputs_large[2 * i - 1] = out_insert
-                else:
-                    intermidate_ls = []
-                    for each in  self.time_step:
-
-                        intermidate_ls.append(self.insert(img0,img1,c0,c1,flow_1to2_pyri,flow_2to1_pyri,each))
-                    for ix,sub in enumerate(intermidate_ls):
-                        insert_feat_prop = sub
-                        insert_feat_prop = self.forward_resblocks_insert(insert_feat_prop)
-                        if  scale1 is not None:
-                            out_insert = self.arb_upample(insert_feat_prop,scale1,scale2)
-                        else:
-                            out_insert = self.arb_upample(insert_feat_prop,self.scale,self.scale2)
-                        intermidate_ls[ix] = out_insert
-                # base_insert = self.img_upsample(inserted_img[:,i-1].squeeze(1))
-                # out_insert += base_insert
-                    outputs_large[2 * i - 1] = intermidate_ls
+                    intermidate_ls[ix] = out_insert
+               
+                outputs_large[2 * i - 1] = intermidate_ls
         final_out = []
         for ix,each in enumerate( outputs_large):
             if isinstance(each,list):
@@ -277,28 +227,52 @@ class Unstrained_ST(nn.Module):
             else:
                 final_out.append(each)
                 
-        if self.is_train:
-            
-            return torch.stack(outputs_large, dim=1)
-        else:
-            return torch.stack(final_out, dim=1)
        
+        return torch.stack(final_out, dim=1)
+       
+class TFA(nn.Module):
+    
+    def __init__(self,nf = 64):
+        super(TFA, self).__init__()
+        self.conv3d_1 = nn.Conv3d(nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
+        self.conv3d_2 = nn.Conv3d(nf, nf, (1,3,3), stride=(1,1,1), padding=(0,1,1))
+        self.conv3d_3 = nn.Conv3d(2*nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
+        self.conv3d_4 = nn.Conv3d(nf, nf, (1,3,3), stride=(1,1,1), padding=(0,1,1))
+        self.conv3d_fuse1 = nn.Conv3d(2*nf, nf, (1,1,1), stride=(1,1,1), padding=(0,0,0))
+        
+        self.repeat_hybrid = self.make_layer_for_2x3(block,3)
+        self.short_cut_out =  nn.Conv2d(3*nf, nf, 3, padding=1)
+        self.att =  ref_attention()
+        self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+    def make_layer_for_2x3(self,block, num_blocks):
+        layers = []
+        for _ in range(num_blocks):
+            layers.append(block())
+        return nn.Sequential(*layers)
 
-       
+    def forward(self, x):
+        #x b,c,t,h,w
+        b,c,t,h,w = x.size()
+        x1 = self.conv3d_1(self.lrelu(x))
+        x1 = self.conv3d_2(self.lrelu(x1))
+        x1 = torch.cat((x,x1), 1)
+        x1 = self.conv3d_3(self.lrelu(x1))
+        x2 = self.conv3d_4(self.lrelu((x1)))
+        x2 = torch.cat((x1,x2),1)
+        x3 = self.conv3d_fuse1(self.lrelu(x2))
+        x4 = self.repeat_hybrid(x3)
+        out = self.lrelu(self.short_cut_out(x.contiguous().view(b,c*t,h,w))) + self.att(x4)
+        return out
+
 
 
 
 if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"]='0'
     # (n, t, c, h, w) = 1, 5, 3, 64,64
-    scale,scale2 = 1.2,1.2
-    model = Unstrained_ST(scale = scale,scale2 = scale2,is_train=True)
-    load_from = '/home/zhangyuantong/code/MyOpenSource/LD-STVSR/weight/model_fix.pth'
-    state = torch.load(load_from)
-    # model_dict = { strKey[7:]: tenWeight for strKey, tenWeight in torch.load(load_from)["state_dict"].items()}
-    # torch.save('/home/zhangyuantong/code/MyOpenSource/LD-STVSR/weight/model_fix.pth',model_dict
-    model.load_state_dict(state , strict=True)
-    # torch.save(model_dict,'/home/zhangyuantong/code/MyOpenSource/LD-STVSR/weight/model_fix.pth')
-    # ivsr = ivsr.cuda()
+    scale,scale2 = 4.0,4.0
+    model = Unstrained_ST(scale = scale,scale2 = scale2)
+    
 
+   
     

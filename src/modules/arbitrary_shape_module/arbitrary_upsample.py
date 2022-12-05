@@ -5,7 +5,7 @@ from turtle import pen
 from matplotlib.pyplot import sca
 # from  modules.arbitrary_shape_module.sepconv_opt import sepconv_func 
 # from  modules.arbitrary_shape_module.shuffle_att import sa_layer 
-from src.utils.data_util import imresize_np
+# from src.utils.data_util import imresize_np
 from src.modules.general_module import PixelShufflePack
 import torch.nn as nn
 import torch
@@ -25,19 +25,13 @@ class Arb_upsample_cas(nn.Module):
             self.y_shape.append(scale2/(2**(i+1)))
         self.sa_adapt = SA_adapt(32)
         self.spacial_adaptive_conv = SA_conv(64,64)
-        # self.reduce_0 =  torch.nn.Conv2d(in_channels=192, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.reduce =  torch.nn.Conv2d(in_channels=32, out_channels=3, kernel_size=3, stride=1, padding=1)
         self.cascade_ps_result = Cascade_ps()
-        # self.sa_up = SA_upsample_light()
-        # self.st_att = ST_att(inplanes  =32,planes = 32)
-        # self.soft_average = Mlp_GEGLU(in_features=64, hidden_features=64, act_layer=nn.GELU)
-        #显存瓶颈不在这儿
+
         self.soft_average = nn.Sequential(nn.Conv2d(96,32,kernel_size = 1,groups=32),
                                           nn.ReLU(inplace=True),
                                           nn.Conv2d(32,32,kernel_size = 1),
                                            nn.ReLU(inplace=True),) 
-  
-
         
     def forward(self,aligned_fea,scale, scale2):
         # print('scale is :',scale)
@@ -45,23 +39,14 @@ class Arb_upsample_cas(nn.Module):
         cascade_ps_result = self.cascade_ps_result(scale_aware_fea)
         std_shape_ls = []
         for i in range(self.ps_num):
-            x_ratio = self.x_shape[i]
-            y_ratio = self.y_shape[i]
-            # print('相对',i,' 倍','下采样',scale/(2**(i+1)))
             cascade_ps_result_std_shape = std_grid_sample(cascade_ps_result[i],scale/(2**(i+1)),scale2/(2**(i+1)))
-            # print(f'cascade_ps_result_std_shape {i}',cascade_ps_result_std_shape.shape)
+           
             std_shape_ls.append(cascade_ps_result_std_shape)
         std_shape_fea = torch.stack(std_shape_ls,dim=1)
-       
-       
         b,d,c,h,w = std_shape_fea.shape
-        # std_shape_fea = std_shape_fea.view(b,3,-1,h,w)
         std_shape_fea = std_shape_fea.transpose(1,2)
         std_shape_fea = std_shape_fea.reshape(b,d*c,h,w)
-        # std_shape_fea = std_shape_fea.squeeze(3).squeeze(4).view(b,h*w,c)
-        # std_shape_fea = self.soft_average(std_shape_fea)
         std_shape_fea = self.soft_average(std_shape_fea)
-        # std_shape_fea = self.st_att(std_shape_fea)
         std_shape_fea = self.sa_adapt(std_shape_fea,scale,scale2)  
         std_shape_fea = self.reduce(std_shape_fea)
        

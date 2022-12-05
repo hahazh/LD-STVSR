@@ -237,17 +237,17 @@ class Vid4(Dataset):  # load train dataset
         h_raw = h
         w_raw = w
         # print('raw shape',GT.shape)
-        if h%256!=0:
-            padded_h1 = (256-h%256)//2
-            padded_h2 = (256-h%256)-padded_h1
-            h = h+(256-h%256)
+        if h%4!=0:
+            padded_h1 = (4-h%4)//2
+            padded_h2 = (4-h%4)-padded_h1
+            h = h+(4-h%4)
     
         else:
             padded_h1,padded_h2 =0,0
-        if w%256!=0:
-            padded_w1 = (256-w%256)//2
-            padded_w2 = (256-w%256)-padded_w1
-            w = w+(256-w%256)
+        if w%4!=0:
+            padded_w1 = (4-w%4)//2
+            padded_w2 = (4-w%4)-padded_w1
+            w = w+(4-w%4)
         else:
             padded_w1,padded_w2 =0,0
         # padded_h1,padded_h2,padded_w1,padded_w2 =  padded_h1+64,padded_h2+64,padded_w1+64,padded_w2+64
@@ -643,20 +643,6 @@ class REDS_test(Dataset):  # load train dataset
         return len(self.total_list)  # total video number. not image number
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def get_loader(mode, data_root, train_file_name, test_file_name, batch_size, shuffle, num_workers, test_mode=None):
     scale = 4
     if mode == 'train':
@@ -678,15 +664,8 @@ def get_vid4_loader(data_root,scale,seq_name,seq_length, batch_size, num_workers
 
 def get_REDS_loader(data_root,scale,seq_length, batch_size, num_workers,shuffle=True,mode='overlap',load_mode='train'):
 
-    # data_root = '/home/zhangyuantong/dataset/REDS/mysplit/'
-    # scale = 4
-    # seq_length = 7
     transform = transforms.Compose([transforms.ToTensor()])
-    # mode = 'overlap'
-    # load_mode = 'train'
-    # f = open('test_list.txt','w')
-    # for each in sorted(os.listdir(train_data_dir)):
-    #     f.write(os.path.join('test',each)+'\n')
+   
     reds = REDS(data_root,scale,transform,seq_length,mode,load_mode)
     return DataLoader(reds, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
 
