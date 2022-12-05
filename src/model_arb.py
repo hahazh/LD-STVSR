@@ -3,17 +3,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from modules.general_module import ResidualBlocksWithInputConv_insert_sav,block
-# from modules.flow_module import IFNet
-from modules.EDVR_module import EDVRFeatureExtractor
 from modules.general_module import flow_warp
-from modules.softalign import Insert_net_2
 from modules.general_module import ref_attention
-from modules.softsplatting.run import backwarp
-import modules.softsplatting.softsplat as softsplat
 import os
-from modules.edvr_net_new import Forward_warp_guided_pcd
+from modules.edvr_net_new import Forward_warp_guided_pcd,FirstOrderDeformableAlignment
 from modules.flow_module import SPyNet
-from modules.edvr_net_new import FirstOrderDeformableAlignment
+
 
 
 
@@ -39,14 +34,8 @@ class Unstrained_ST(nn.Module):
         self.keyframe_stride = keyframe_stride
         self.time_step = time_step
         self.output_fea = output_fea
-        # self.spy = pwcnet()
-        load_path = '/home/zhangyuantong/code/ST-SR/icon_STSR/pretrained_weight/spynet.pth'
-        self.spy = SPyNet(load_path)
-        # m_p = '/home/zhangyuantong/code/ST-SR/ThreeBArbitrary/src/modules/pwc/weights/network-default.pytorch'
-            # self.pwc.load_state_dict({ strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in torch.load('./modules/pwc/weights/network-default.pytorch').items()})
-        # pre_weight_pwc = {strKey.replace('module', 'net'): v for strKey, v in
-        #                         torch.load(m_p).items()}
-        # self.spy.load_state_dict(pre_weight_pwc)
+       
+        self.spy = SPyNet(pretrained=None)
       
         self.insert = Forward_warp_guided_pcd()
        
@@ -59,10 +48,9 @@ class Unstrained_ST(nn.Module):
              mid_channels , mid_channels, num_blocks,K=5)
         self.forward_resblocks_insert = ResidualBlocksWithInputConv_insert_sav(
              mid_channels, mid_channels, num_blocks,K=5)
-        # self.arb_upample = Arb_upsample(scale,scale2)
+     
         self.arb_upample = Arb_upsample(scale,scale2)
-        # self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
-        # self.conv_last = nn.Conv2d(64, 3, 3, 1, 1)
+       
         self.lr_feat_extract = ResidualBlocksWithInputConv_insert_sav(3, mid_channels, 5,K=5)
         self.deform_align = FirstOrderDeformableAlignment(
                     2 * mid_channels,
@@ -74,9 +62,8 @@ class Unstrained_ST(nn.Module):
        
         # activation function
         self.atten_fuse = TFA()
-        # self.atten_fuse = TFA_with_only3d()
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
-        # self.conv_6_to_3 = nn.Conv2d(6, 3, 3, 1, 1)
+
     def spatial_padding(self, lrs):
       
         n, t, c, h, w = lrs.size()
@@ -130,54 +117,15 @@ class Unstrained_ST(nn.Module):
             flows_forward_small = (1.0/4.0)*flows_forward_small.view(n, (t - 1), 2, h//4, w//4)
             
             flows_forward_pri = [flows_forward_large,flows_forward_mid,flows_forward_small]
-        # n, t, c, h, w = lrs.size()
-        # lrs_1 = lrs[:, :-1, :, :, :].reshape(-1, c, h, w)
-        # lrs_2 = lrs[:, 1:, :, :, :].reshape(-1, c, h, w)
-        # # lrs_catted = torch.cat((lrs_1,lrs_2),dim=1)
-        # # lrs_catted_reverse = torch.cat((lrs_2,lrs_1),dim=1)
-        # # example lrs_1 : 1,2,3,4,5,6
-        # #         lrs_2 : 2,3,4,5,6,7
-        # flows_backward = self.spy(lrs_2,lrs_1)
-        # flows_backward_mid = nn.functional.interpolate(input=flows_backward, size=(h//2, w//2),
-        #                                                     mode='bilinear', align_corners=False)
-        # flows_backward_large = nn.functional.interpolate(input=flows_backward, size=(h, w),
-        #                                                     mode='bilinear', align_corners=False)
-        # flows_backward_large = (20.0)*flows_backward_large.view(n, (t - 1), 2, h, w)
-        # flows_backward_mid = (20.0/2)*flows_backward_mid.view(n, (t - 1), 2, h//2, w//2)
-        # flows_backward = flows_backward.view(n, (t - 1), 2, h//4, w//4)
-        # flows_backward_pri = [flows_backward_large,flows_backward_mid,flows_backward]
-
-        # if self.is_mirror_extended:
-        #     print('!!!!mirror!!!!')  # flows_forward = flows_backward.flip(1)
-        #     flows_forward = None
-        #     flows_forward_large = None
-        # else:
-        #     flows_forward = self.spy(lrs_1,lrs_2)
-        #     flows_forward_mid = nn.functional.interpolate(input=flows_forward, size=(h//2, w//2),
-        #                                                     mode='bilinear', align_corners=False)
-        #     flows_forward_large = nn.functional.interpolate(input=flows_forward, size=(h, w),
-        #                                                     mode='bilinear', align_corners=False)
-        #     flows_forward_large = (20.0)*flows_forward_large.view(n, (t - 1), 2, h, w)
-        #     flows_forward_mid = (20.0/2)*flows_forward_mid.view(n, (t - 1), 2, h//2, w//2)
-        #     flows_forward = flows_forward.view(n, (t - 1), 2, h//4, w//4)
-        #     flows_forward_pri = [flows_forward_large,flows_forward_mid,flows_forward]
+      
         return flows_forward_large, flows_backward_large,flows_forward_pri,flows_backward_pri
 
 
     def forward(self, lrs,scale1 = None,scale2 = None):
-        """Forward function for IconVSR.
-        Args:
-            lrs (Tensor): Input LR tensor with shape (n, t, c, h, w).
-        Returns:
-            Tensor: Output HR tensor with shape (n, t, c, 4h, 4w).
-        """
+      
     
         
         n, t, c, h_input, w_input = lrs.size()
-        assert h_input >= 64 and w_input >= 64, (
-            'The height and width of inputs should be at least 64, '
-            f'but got {h_input} and {w_input}.')
-
         # check whether the input is an extended sequence
         self.check_if_mirror_extended(lrs)
 
@@ -247,7 +195,7 @@ class Unstrained_ST(nn.Module):
             
             #fusionnet
             stacked_feat =torch.stack([ outputs[2 * i], feat_current,feat_prop]).permute(1,2,0,3,4)
-            # feat_prop = torch.cat([ outputs[2 * i], feat_prop], dim=1)
+           
             feat_prop = self.atten_fuse(stacked_feat)
             feat_prop = self.forward_resblocks(feat_prop,scale1,scale2)
 
@@ -303,7 +251,6 @@ class TFA(nn.Module):
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
     def forward(self, x):
-        #x b,c,t,h,w
         b,c,t,h,w = x.size()
         out = self.lrelu(self.short_cut_out(x.contiguous().view(b,c*t,h,w)))+self.att(x)
         return out
@@ -317,4 +264,3 @@ if __name__ == '__main__':
     scale,scale2 = 1.2,1.2
     model = Unstrained_ST(scale = scale,scale2 = scale2)
     
-    # print(out_data.shape)
