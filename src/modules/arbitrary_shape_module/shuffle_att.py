@@ -57,7 +57,7 @@ class sa_layer(nn.Module):
         out = self.channel_shuffle(out, 2)
         return out
 if __name__=='__main__':
-    # 第二个参数（128）是channel的个数，必须是 group的整倍数（这里group是64）
+
     in_data = torch.randn(1,64,64,64)
     sa = sa_layer(channel = 64)
     out = sa(in_data)

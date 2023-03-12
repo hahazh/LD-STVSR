@@ -10,15 +10,15 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-# from arbitrary_shape_ps1 import Unstrained_ST as Unstrained_ST_ps1
+
 
 import utils.myutils as utils
 
-# from bak.best_arg_now import IconSTSR as IconSTSR_if
+
 from mydata.load_train import get_vid4_loader
 
 
-# from icon_STSR_IFnet  import IconSTSR as IconSTSR_if
+
 
 
 ##### Parse CmdLine Arguments #####
@@ -39,9 +39,9 @@ mode = 'mirror'
 
 def test():
     from model_fix import Unstrained_ST
-    # for l in range(38,44):
-    out_dir = '/home/zhangyuantong/code/MyOpenSource/LD-STVSR/out'
-    load_from = '/home/zhangyuantong/code/MyOpenSource/LD-STVSR/weight/model_fix.pth'
+
+    out_dir = 'xxx'
+    load_from = 'xxx'
    
 
 
@@ -52,7 +52,7 @@ def test():
     model = model.cuda()
     print("#params" , sum([p.numel() for p in model.parameters()]))
     model_dict =torch.load(load_from)
-    # model_dict =  torch.load(load_from)["state_dict"]
+
     model.load_state_dict(model_dict , strict=True)
 
 
@@ -74,18 +74,15 @@ def test():
                 images = images.cuda()
                 gt = gt_image.cuda()
 
-                torch.cuda.synchronize()
-                start_time = time.time()
+        
                 out= model(images,scale,scale2)
-                torch.cuda.synchronize()
-                this_time = time.time() - start_time
-                print(this_time)
+
              
                 img_p = out_dir+'/'+str(scale)+'/'+tag
                 if   not os.path.exists(img_p):
                     os.makedirs(img_p)
                 out_cp = out.squeeze(0)
-                print(out_cp.shape)
+               
                 for j in range(seq_length):
                     img = out_cp[j].permute(1,2,0).detach().cpu().clamp(0,1).numpy()*255.0
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -95,7 +92,7 @@ def test():
                  
                     cv2.imwrite(img_p+'/'+str(int(tag_ix[j])).zfill(8)+'uns.png',img)
                     cnt+=1
-                print(img_p)
+      
               
 
     return psnrs.avg

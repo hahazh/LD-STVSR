@@ -6,12 +6,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from modules.general_module import ResidualBlocksWithInputConv, block
-# from modules.flow_module import IFNet
+
 from modules.general_module import flow_warp,ref_attention
 import os
-from modules.edvr_net_new import Forward_warp_guided_pcd
+from modules.edvr_net_new import Forward_warp_guided_pcd,FirstOrderDeformableAlignment
 from modules.flow_module import SPyNet
-from modules.edvr_net_new import FirstOrderDeformableAlignment
+
 
 
 

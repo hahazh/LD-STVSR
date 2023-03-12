@@ -7,7 +7,7 @@ from PIL import Image
 class Basic_layer1(nn.Module):
     def __init__(self,block_index):
         super(Basic_layer1, self).__init__()
-        # 第一层
+      
         self.layer = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=1),
             nn.RReLU(inplace=False),
@@ -20,7 +20,7 @@ class Basic_layer1(nn.Module):
 class Basic_layer2(nn.Module):
     def __init__(self,block_index):
         super(Basic_layer2, self).__init__()
-        # 第二层
+     
         self.layer = nn.Sequential(
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1),
             nn.RReLU(inplace=False),
@@ -32,7 +32,7 @@ class Basic_layer2(nn.Module):
 class Basic_layer3(nn.Module):
     def __init__(self,block_index):
         super(Basic_layer3, self).__init__()
-        # 第三层
+     
         self.layer = nn.Sequential(
             nn.Conv2d(in_channels=64, out_channels=96, kernel_size=3, stride=2, padding=1),
             nn.RReLU(inplace=False),
@@ -50,24 +50,14 @@ class Feature_extractor(nn.Module):
         if use_pretrained:
 
             model = models.resnet18(pretrained=False)
-            # model.load_state_dict(torch.load('weights/resnet18-5c106cde.pth'))
-            # 只保留第一层 conv
+         
             self.resnet_layer = nn.Sequential(*list(model.children())[:1])
             if self.replace:
                 self.resnet_layer[0] =  nn.Conv2d(in_channels=3,out_channels=64,kernel_size=7,stride=1,padding=3)
                 self.resnet_layer[4] = self.resnet_layer[4][0]
             for each in self.resnet_layer:
                 print(each)
-            # print(self.resnet_layer)
-            # for k,v in self.resnet_layer.named_parameters():
-            #     print(k)
-            # print(self.resnet_layer.conv1.weight)
-            # self.resnet_layer.conv1 = nn.Conv2d(in_channels=3,out_channels=64,kernel_size=7,stride=1,padding=3)
-            # for k,v in self.resnet_layer.named_parameters():
-            #     # if k=='conv1.weight':
-            #     #     print(v)
-            #
-            #     print(k,v.requires_grad)
+          
         else:
             self.layer1 = Basic_layer1()
             self.layer2 = Basic_layer2()
@@ -151,11 +141,7 @@ if __name__=='__main__':
     res = res.detach().numpy().reshape(112,112,1)*255
     res = np.stack([res,res,res],axis=2).squeeze()*255
     print(res.shape)
-    # res = res.detach().numpy().reshape(160*160,64)
-    # print(res.shape)
-    # pca = PCA(n_components=3)
-    # fit_res = pca.fit_transform(res).reshape(160,160,3)*255
-    # cv2.imshow('fit_res.jpg',fit_res)
+
     cv2.imwrite('fitres.png',res)
     # cv2.waitKey(0)
     # print(fit_res.shape)

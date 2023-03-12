@@ -122,13 +122,7 @@ class Light_GridNet(nn.Module):
         state_13 = self.up_1_0(state_23) + self.lateral_1_2(state_12)
         state_03 = self.up_0_0(state_13) + self.lateral_0_2(state_02)
 
-        # state_24 = self.lateral_2_3(state_23)
-        # state_14 = self.up_1_1(state_24) + self.lateral_1_3(state_13)
-        # state_04 = self.up_0_1(state_14) + self.lateral_0_3(state_03)
-
-        # state_25 = self.lateral_2_4(state_24)
-        # state_15 = self.up_1_2(state_25) + self.lateral_1_4(state_14)
-        # state_05 = self.up_0_2(state_15) + self.lateral_0_4(state_04)
+   
         out_img = self.lateral_final(state_03)
         
         return out_img

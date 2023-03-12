@@ -181,7 +181,7 @@ class PCDAlignment(nn.Module):
         offset = self.cas_offset_conv2(self.cas_offset_conv1(offset))
         feat = self.lrelu(self.cas_dcnpack(feat, offset))
         return feat
-#这里不改一下吗？？？
+
 class Metric(torch.nn.Module):
     def __init__(self):
         super(Metric, self).__init__()
@@ -191,81 +191,7 @@ class Metric(torch.nn.Module):
     def forward(self, tenFirst, tenSecond, tenFlow):
         
         return self.paramScale * torch.nn.functional.l1_loss(input=tenFirst, target=backwarp(tenSecond, tenFlow),reduction='none').mean(1,True)
-# class Small_UNet(nn.Module):
-#     def __init__(self):
-#         super(Small_UNet, self).__init__()
 
-#         class Decoder(nn.Module):
-#             def __init__(self, l_num):
-#                 super(Decoder, self).__init__()
-
-#                 self.conv_relu = nn.Sequential(
-#                     nn.ReLU(inplace=False),
-#                     nn.Conv2d(in_channels=l_num * 32 * 2, out_channels=l_num * 32, kernel_size=3, stride=1, padding=1),
-#                     nn.ReLU(inplace=False),
-#                     nn.Conv2d(in_channels=l_num * 32, out_channels=l_num * 32, kernel_size=3, stride=1, padding=1),
-
-#                 )
-
-#             def forward(self, x1, x2):
-#                 x1 = torch.cat((x1, x2), dim=1)
-#                 x1 = self.conv_relu(x1)
-#                 return x1
-#         self.conv1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1)
-
-#         self.down_l1 = nn.Sequential(
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=2, padding=1),
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-#         )
-#         self.down_l2 = nn.Sequential(
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=2, padding=1),
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-#         )
-
-#         self.middle = nn.Sequential(
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(inplace=False)
-#         )
-#         self.up_l2 = nn.Sequential(
-#             nn.UpsamplingBilinear2d(scale_factor=2),
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(inplace=False)
-#         )
-#         self.up_l1 = nn.Sequential(
-#             nn.UpsamplingBilinear2d(scale_factor=2),
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(inplace=False),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-#         )
-
-#         self.Decoder2 = Decoder(2)
-#         self.Decoder1 = Decoder(2)
-
-#     def forward(self, ten):
-#         conv_1 = self.conv1(ten)
-#         ten_d_l1 = self.down_l1(conv_1)
-#         ten_d_l2 = self.down_l2(ten_d_l1)
-
-#         ten_mid = self.middle(ten_d_l2)
-
-#         ten_u_l2 = self.Decoder2(ten_d_l2, ten_mid)
-#         ten_u_l1 = self.up_l2(ten_u_l2)
-
-#         ten_u_l1 = self.Decoder1(ten_d_l1, ten_u_l1)
-#         ten_out = self.up_l1(ten_u_l1)
-
-#         return ten_out
-# from  https://github.com/JunHeum/ABME/blob/d9f04d160d6806204a384b29dc6a4821152bb77b/model/SynthesisNet.py
 
 
 class Small_UNet(nn.Module):
@@ -371,16 +297,7 @@ class Forward_warp_guided_no_pcd(nn.Module):
         # fea1
         # L3: level 3, 1/4 spatial size
         self.alpha = -20.0
-        # self.L2_fea_conv_1 = ConvModule( mid_channels * 2,mid_channels, 3,padding=1,act_cfg=act_cfg)
-        # L1: level 1, original spatial size
       
-        # self.L1_fea_conv_1 = ConvModule( mid_channels * 2,mid_channels, 3,padding=1,act_cfg=None)
-        # fea2
-         # L3: level 3, 1/4 spatial size
-        # self.L2_fea_conv_2 = ConvModule( mid_channels * 2,mid_channels, 3,padding=1,act_cfg=act_cfg)
-        # L1: level 1, original spatial size
-        # self.L1_fea_conv_2 = ConvModule( mid_channels * 2,mid_channels, 3,padding=1,act_cfg=None)
-        # use for downsampling feat and img
         self.fea_L1_conv  = nn.Conv2d(3, mid_channels, 3, 1, 1, bias=True)
         self.fea_L2_conv1 = nn.Sequential(
             nn.Conv2d(mid_channels, mid_channels, 3, 1, 1, bias=True),
@@ -407,14 +324,10 @@ class Forward_warp_guided_no_pcd(nn.Module):
             nn.Conv2d(mid_channels, mid_channels, 3, 2, 1, bias=True),
             nn.LeakyReLU(negative_slope=0.1),
         )
-        # self.img_L2_conv1 = nn.Conv2d(3, mid_channels, 3, 2, 1, bias=True)
        
-        # self.img_L3_conv2 = nn.Conv2d(mid_channels, mid_channels, 3, 1, 1, bias=True)
-
         self.lrelu = nn.LeakyReLU(negative_slope=0.1)
         self.metric = Metric()
-        # self.blend = nn.Conv2d(mid_channels*2+32, mid_channels, 1, 1, 0, bias=True)
-        # self.small_u = Small_UNet()
+       
         self.reduce1 = nn.Conv2d(2*mid_channels, mid_channels, 3, 1, 1, bias=True)
         self.reduce2 = nn.Conv2d(3*mid_channels, mid_channels, 3, 1, 1, bias=True)
         self.reduce3 = nn.Conv2d(2*mid_channels+3, mid_channels, 3, 1, 1, bias=True)
@@ -606,10 +519,7 @@ class Forward_warp_guided_pcd(nn.Module):
             nn.Conv2d(mid_channels, mid_channels, 3, 1, 1, bias=True),
             nn.LeakyReLU(negative_slope=0.1),
         )
-        # self.img_L2_conv1 = nn.Conv2d(3, mid_channels, 3, 2, 1, bias=True)
-       
-        # self.img_L3_conv2 = nn.Conv2d(mid_channels, mid_channels, 3, 1, 1, bias=True)
-
+      
         self.lrelu = nn.LeakyReLU(negative_slope=0.1)
         self.metric = Metric()
         self.blend = nn.Conv2d(mid_channels*2+32, mid_channels, 1, 1, 0, bias=True)

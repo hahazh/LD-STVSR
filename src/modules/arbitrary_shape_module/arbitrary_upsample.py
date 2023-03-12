@@ -3,9 +3,6 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../'))
 from turtle import pen
 from matplotlib.pyplot import sca
-# from  modules.arbitrary_shape_module.sepconv_opt import sepconv_func 
-# from  modules.arbitrary_shape_module.shuffle_att import sa_layer 
-# from src.utils.data_util import imresize_np
 from src.modules.general_module import PixelShufflePack
 import torch.nn as nn
 import torch
@@ -516,10 +513,7 @@ def std_grid_sample(x, scale, scale2):
     grid = grid.permute(2, 0, 1).unsqueeze(0)
     grid = grid.expand([b, -1, -1, -1])
 
-    # add offsets
-    # offset_0 = torch.unsqueeze(offset[:, 0, :, :] * 2 / (w - 1), dim=1)
-    # offset_1 = torch.unsqueeze(offset[:, 1, :, :] * 2 / (h - 1), dim=1)
-    # grid = grid + torch.cat((offset_0, offset_1),1)
+    
     grid = grid.permute(0, 2, 3, 1)
 
     # sampling
@@ -640,9 +634,7 @@ class Arb_upsample(nn.Module):
         # self.cascade_ps_result = Cascade_ps()
         self.cascade_ps_result = Cascade_ps_seprate()
         self.sa_up = SA_upsample_light(32)
-        # self.st_att = ST_att(inplanes  =32,planes = 32)
-        # self.soft_average = Mlp_GEGLU(in_features=64, hidden_features=64, act_layer=nn.GELU)
-        #显存瓶颈不在这儿
+   
         self.soft_average = nn.Sequential(nn.Conv2d(96,32,kernel_size = 1,groups=32),
                                           nn.ReLU(inplace=True),
                                           nn.Conv2d(32,32,kernel_size = 1),
@@ -707,9 +699,7 @@ class Arb_upsample_ps1(nn.Module):
         # self.cascade_ps_result = Cascade_ps()
         self.cascade_ps_result = Cascade_ps_seprate(self.ps_num)
         self.sa_up = SA_upsample_light(32)
-        # self.st_att = ST_att(inplanes  =32,planes = 32)
-        # self.soft_average = Mlp_GEGLU(in_features=64, hidden_features=64, act_layer=nn.GELU)
-        #显存瓶颈不在这儿
+       
         self.soft_average = nn.Sequential(nn.Conv2d(32,32,kernel_size = 1,groups=32),
                                           nn.ReLU(inplace=True),
                                           nn.Conv2d(32,32,kernel_size = 1),
