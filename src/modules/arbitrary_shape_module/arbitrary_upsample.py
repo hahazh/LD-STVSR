@@ -762,21 +762,3 @@ class Arb_bilinear(nn.Module):
         return  out
 
 
-if __name__=='__main__':
-    s = [1.2, 1.4 ,1.6 ,1.8 ,2.0,2.2,2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8,4.0]
-    fea = torch.rand(1,64,64,64).cuda()
-    test_np_data = torch.rand((256,256,3)).numpy()
-    ratio = [0.295,0.351,0.398,0.445,0.5,0.545,0.600,0.648,0.695,0.75,0.796,0.850,0.895,0.945,1.0]
-    for ix,scale in enumerate(s):
-        # if ix>0 and ix < len(s)-1:
-        #     scale_2 = s[ix-1]
-        # else:
-        scale_2 = scale
-        arb = Arb_upsample(scale,scale_2).cuda()
-        arb.eval()
-        out = arb(fea,scale,scale_2)
-        print(math.floor(ratio[ix]*256))
-        out_img = imresize_np(test_np_data,ratio[ix],antialiasing=True)
-        print('bicubic shape',out_img.shape,ratio[ix])
-        print(out.shape)
-   
