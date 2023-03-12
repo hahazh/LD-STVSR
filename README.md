@@ -8,6 +8,10 @@ This is the implementation of  paper "Continuous Space-Time Video Super-Resoluti
 
 password: kzdi 
 
+model_arb refer to model that trained in space-time arbitrary manner.
+model_fix refer to model that trained in fixed space-time scale factor(space 4x and time 2x).
+
+
 # Environment
 We are good in the environment:
 
