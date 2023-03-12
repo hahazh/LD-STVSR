@@ -27,7 +27,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]='0'
 cwd = os.getcwd()
 seq_name_tuple = ('calendar','city','foliage','walk')
 seq_length_tuple = (41,33,49,47)
-data_root =  '/home/zhangyuantong/dataset/Vid4/GT/'
+data_root =  'xxx'
 scale = 4
 
 batch_size = 1
@@ -102,7 +102,7 @@ def cal_cri():
     from basicsr.utils.matlab_functions import bgr2ycbcr
     GT_base_dir = data_root
   
-    pred_base_dir = '/home/zhangyuantong/code/MyOpenSource/LD-STVSR/out/4.0'
+    pred_base_dir = 'xxx'
     total_psnr = 0
     total_ssim = 0
     cnt = 0
