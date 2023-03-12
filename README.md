@@ -17,54 +17,25 @@ CUDA 9.1
 
 Pytorch 1.5.0
 
-# Generate image
-To test on vimeo, 
 
-```
-cd src
-
-python test_vimeo.py --datapath VIMEOPATH --outputpath  OUTPUTPATH --weight PATHTOWEIGHT
-```
-
-To test on REDS, 
-
-```
-cd src
-
-python test_reds.py --datapath REDSPATH --outputpath  OUTPUTPATH --weight PATHTOWEIGHT
-```
-
-To test on VID4, 
-
-```
-cd src
-
-python test_vid4.py --datapath VID4PATH --outputpath  OUTPUTPATH --weight PATHTOWEIGHT
-```
-# Calculate criteria
-you should specify the GT path and output path first, and run:
-```
-cd src
-
-python eval.py
-```
-or you may directly get all evaluation results in src/evaluation_results
 # Run a demo
 
 
-
+you should specify the GT path and output path first, and run:
 
 
 ```
 cd src
 
-python demo.py
+python test_vid4.py
 ```
 
 # Acknowledgment
 Our code is built on
 
  [Zooming-Slow-Mo-CVPR-2020](https://github.com/Mukosame/Zooming-Slow-Mo-CVPR-2020)
+
+ [softsplatting](https://github.com/sniklaus/softmax-splatting)
 
  [open-mmlab](https://github.com/open-mmlab)
 
