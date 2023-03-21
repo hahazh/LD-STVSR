@@ -2,6 +2,8 @@
 
 This is the implementation of  paper "Continuous Space-Time Video Super-Resolution Utilizing Long-Range Temporal Information".
 
+Our paper is currently under peer review, detail introduction will be coming soon.
+
 # Pre-trained models
 
 [BaiduCloud](https://pan.baidu.com/s/1eiiLGqhOMman6CPgp9LeFA)
