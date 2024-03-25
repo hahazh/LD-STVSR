@@ -1,8 +1,9 @@
 # Introduction
 
 This is the implementation of  the paper "Continuous Space-Time Video Super-Resolution with Multi-stage Motion Information Reorganization".
+Space-time video super-resolution (ST-VSR) aims to simultaneously expand a given source video to a higher frame rate and resolution. However, most existing schemes either consider fixed intermediate time and scale or fail to exploit long-range temporal information due to model design or inefficient motion estimation and compensation. To address these problems, we propose a continuous ST-VSR  method to convert the given video to any frame rate and spatial resolution with multi-stage motion information reorganization (MsMr). To achieve time-arbitrary interpolation, we propose a forward warping guided frame synthesis module and an optical-flow-guided context consistency loss to better approximate extreme motion and preserve similar structures among input and prediction frames. To realize continuous spatial upsampling, we design a memory-friendly cascading depth-to-space module. Meanwhile, with the sophisticated reorganization of optical flow, MsMr realizes more efficient motion estimation and motion compensation, making it possible to propagate information from long-range neighboring frames and achieve better reconstruction quality. Extensive experiments show that the proposed algorithm is flexible and performs better on various datasets than the state-of-the-art methods.
 
-Our paper is currently under peer review, and a detailed introduction will be coming soon.
+**Our paper is currently under peer review, and a detailed introduction will be coming soon.**
 # visual comparisons
 Our MsMr exhibits a clear subjective visual advantage in handling large motions.
 
