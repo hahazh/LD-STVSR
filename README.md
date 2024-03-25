@@ -1,8 +1,8 @@
 # Introduction
 
-This is the implementation of  paper "Continuous Space-Time Video Super-Resolution Utilizing Long-Range Temporal Information".
+This is the implementation of  the paper "Continuous Space-Time Video Super-Resolution with Multi-stage Motion Information Reorganization".
 
-Our paper is currently under peer review, detail introduction will be coming soon.
+Our paper is currently under peer review, and a detailed introduction will be coming soon.
 # visual comparisons
 Our MsMr exhibits a clear subjective visual advantage in handling large motions.
 
